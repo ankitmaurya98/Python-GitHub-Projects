@@ -166,13 +166,14 @@ def exportToExcel(database):
     
     
     # Writing to Excel file
+    # Creating a Data Frame structure from the dictionary created. Dictionary contains the arrays that hold the data for each of the books that are in our inventory
     df = pd.DataFrame({'Code':codeArray,
                        'Title':nameArray,
                        'Author':authorArray,
                        'Quantity':qtyArray,
                        'Price':costArray})
-    writer = pd.ExcelWriter('Bookshop Inventory.xlsx')
-    df.to_excel(writer,'Sheet 1', index = False)
+    writer = pd.ExcelWriter('Bookshop Inventory.xlsx')  # Creating the new Excel file
+    df.to_excel(writer,'Sheet 1', index = False)        # Save to Sheet 1 of the newly created Excel file
     writer.save()
 
     

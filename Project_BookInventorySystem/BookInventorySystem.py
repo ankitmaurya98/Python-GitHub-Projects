@@ -54,26 +54,26 @@ def menuFunction(inventory):
         
         # If statements that will run based on the choice that is made
         if choice == 1:
-            Book.addBook(inventory)
+            Book.addBook(inventory)   # Calls addBook() function which creates a new object and adds it to inventory
         elif choice == 2:
-            inputCode = int(input("Enter Book Code: "))
-            inputQTYToBuy = int(input("Enter Quantity to Buy: "))
-            Book.buyBook(inventory, inputCode, inputQTYToBuy)
+            inputCode = int(input("Enter Book Code: "))    # Gets user input and converts it to an integer
+            inputQTYToBuy = int(input("Enter Quantity to Buy: "))  # Gets user input and converts it to an integer
+            Book.buyBook(inventory, inputCode, inputQTYToBuy) # Calls the buyBook() function which then returns total cost, and reduces number of books in inventory
         elif choice == 3:
-            inputCode = int(input("Enter Book Code: "))
-            Book.inStock(inventory, inputCode)
+            inputCode = int(input("Enter Book Code: ")) # Gets user input and converts it to an integer
+            Book.inStock(inventory, inputCode) # Calls the inStock() function to check if a book with a given code is in the inventory
         elif choice == 4:
-            inputCode = int(input("Enter Book Code: "))
-            inputQTYToAdd = int(input("Enter Quantity to Add: "))
-            Book.addQuantity(inventory, inputCode, inputQTYToAdd)
+            inputCode = int(input("Enter Book Code: ")) # Gets user input and converts it to an integer
+            inputQTYToAdd = int(input("Enter Quantity to Add: ")) # Gets user input and converts it to an integer
+            Book.addQuantity(inventory, inputCode, inputQTYToAdd) # Calls the addQuantity() function to add a specified number of books to inventory
         elif choice == 5:
-            Book.printInventoryList(inventory)
+            Book.printInventoryList(inventory) # Calls the printInventoryList() function which then displays the entire inventory list to the output window
         elif choice == 6:
-            Book.exportToExcel(inventory)
+            Book.exportToExcel(inventory)  # Calls the exportToExcel() function which then writes the entire inventory list to an Excel file
         elif choice == 7:
-            runloop = 1
+            runloop = 1  # Exits the loop and ends the program
         else:
-            print("Invalid Entry")
+            print("Invalid Entry")  # Will then restart the loop and ask for menu choice to be entered again
             
 
 
