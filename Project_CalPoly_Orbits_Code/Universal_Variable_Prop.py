@@ -1,8 +1,8 @@
-# Created
+# Created 9/28/2021
 
 
 # This is an example of propagating an orbit using the Universal Variable Method
-
+# Problem 3.20 from Curtis is used as an example problem
 
 import numpy as np
 from scipy.integrate import odeint
