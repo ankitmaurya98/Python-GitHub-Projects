@@ -9,6 +9,7 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import math
 
+import Orbits_module as orbits
 
 # Stumpff Functions
 def StumC(Z):
@@ -94,28 +95,7 @@ def Universal_Variable_Prop(muearth, rvect, vvect, initialdt):
     vvect_new = fdot*rvect_array +  gdot*vvect_array
     
     return[rvect_new, vvect_new]
-    
-# 2 Body Motion Orbit Equation ODE
-def two_body_motion(state, t, muearth):
-    
-    x = state[0]     # x position
-    y = state[1]     # y position
-    z = state[2]     # z position
-    
-    dx = state[3]     # x velocity
-    dy = state[4]     # y velocity
-    dz = state[5]     # z velocity
-    
-    # Norm of position vector
-    r = np.linalg.norm([x, y, z])
-    
-    # Acceleration and direction
-    ddx = (-muearth*x)/(r**3);  # x acceleration
-    ddy = (-muearth*y)/(r**3);  # y acceleration
-    ddz = (-muearth*z)/(r**3);  # z acceleration
-    
-    return [dx, dy, dz, ddx, ddy, ddz]   
-    
+      
 
 def main():
     # constants
@@ -125,7 +105,7 @@ def main():
     # Curtis Problem 3.20
     # Problem Statement: Given initial R and V vectors, find the R and V vectors 2 hours later
     
-    # Inital Conditions
+    # Initial Conditions
     rvect_initial = [20000, -105000, -19000]  # (km)
     vvect_initial = [.9000, -3.4000, -1.5000] # (km/s)
     initialdt = 2*3600                # hours converted to seconds
@@ -143,17 +123,9 @@ def main():
     print(" ")
     print("Check with 2 Body Motion ODE")
     # Check performed with 2 body motion propagator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      # Initial state vectors
-    r = rvect_initial   # Initial Position Vector
-    v = vvect_initial    # Initial Velocity Vector
-    state = np.concatenate((r, v))   # Combining state into 1 big array
-    
-    # time steps
-    tf = 2*3600 # sec
-    t = np.linspace(0, tf, 2000)   # With specified number of steps
     
     # solve ode
-    propstate = odeint(two_body_motion, state, t, args = (muearth,))
+    propstate = orbits.ODE_two_body_motion(rvect_initial, vvect_initial, 2*3600, 2000) # Using 2 body motion ODE from Orbits_module
     endstate = propstate[len(propstate) - 1] # Getting last line of propagated state values
     
     # Results
