@@ -4,6 +4,7 @@
 #       two_body_motion(): This function is 2 body equations of motion which can then be used in the ODE calculator
 #       ODE_two_body_motion():
 #       COEsFunction(): This function converts R and V vectors into their Classical Orbital Elements
+#       COEs_to_RV(): This function converts a given set of Classical Orbital Elements into the respective R and V vectors
 #       StumC(): Stumpff function used for Universal Variable Calculations
 #       StumS(): Stumpff function used for Universal Variable Calculations
 #       Universal_Variable_Prop(): Universal Variable Function
@@ -129,6 +130,50 @@ def COEsFunction(rvect, vvect):
     
     
     return [h, ecc, a, inc, RAAN, argumentofperigee, trueanomaly]
+
+
+def COEs_to_RV(h, ecc, inc, RAAN, argumentofperigee, trueanomaly):
+    # This function is used to convert COEs into the respective R and V vectors in the ECI frame
+    # Inputs:
+    #       h - angular momentum [km^2/s]
+    #       ecc - eccentricity
+    #       a - semi-major axis [km]
+    #       inc - inclination [degrees]
+    #       RAAN - Right Ascension of Acending Node [degrees]
+    #       argumentofperigee - Argument of Perigee [degrees]
+    #       trueanomaly - True Anomaly [degrees]
+    # Outputs:
+    #       r_eci - Position vector (km)
+    #       v_eci - Velocity vector (km/s)
+    
+    muearth = 398600  # km^3/s^2
+    
+    # Initial Vectors in Perifocal Frame
+    r = ((h**2)/muearth)*(1/(1 + ecc*math.cos(math.radians(trueanomaly))))*(np.array([math.cos(math.radians(trueanomaly)), math.sin(math.radians(trueanomaly)), 0]))
+    v = (muearth/h)*(np.array([-math.sin(math.radians(trueanomaly)), ecc + math.cos(math.radians(trueanomaly)), 0]))
+    
+    # Perifocal Frame to ECI Frame Rotation Matrix
+    # Principal Rotation about x-axis
+    R1 = np.array([[1, 0, 0],
+        [0, math.cos(math.radians(inc)), math.sin(math.radians(inc))],
+        [0, -math.sin(math.radians(inc)), math.cos(math.radians(inc))]])
+    # Principal Rotation about z-axis
+    R3 = np.array([[math.cos(math.radians(argumentofperigee)), math.sin(math.radians(argumentofperigee)), 0],
+        [-math.sin(math.radians(argumentofperigee)), math.cos(math.radians(argumentofperigee)), 0],
+        [0, 0, 1]])
+    # Principal Rotation about z-axis
+    R3_2 = np.array([[math.cos(math.radians(RAAN)), math.sin(math.radians(RAAN)), 0],
+        [-math.sin(math.radians(RAAN)), math.cos(math.radians(RAAN)), 0],
+        [0, 0, 1]])
+    # 3-1-3 Rotation Matrix
+    Qperi2eci= np.transpose(R3 @ R1 @ R3_2) # matrix multiplication performed using @ operator instead of using np.matmul()
+    
+    # R and V vectors in ECI Frame
+    r_eci = Qperi2eci @ r # matrix multiplication performed using @ operator instead of using np.matmul()
+    v_eci = Qperi2eci @ v # matrix multiplication performed using @ operator instead of using np.matmul()
+    
+    return [r_eci, v_eci]
+
 #-----------------------------------------------------------------------------
 
 # Stumpff Functions
