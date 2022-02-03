@@ -1,13 +1,26 @@
 # This module contains relevant functions that can be used for orbital mechanics problems
 
 # Functions defined in this module:
+#  Dealing with Time Calculations:
+#       JulianDateCalc(): This function outputs the Julian Date from a given time
+#       Local_Sidereal_Time_Calc(): This function calculates the Local Sidereal time based on the given date and time
+
+#  2 Body Orbit Propagation:
 #       two_body_motion(): This function is 2 body equations of motion which can then be used in the ODE calculator
 #       ODE_two_body_motion():
+
+#  Converting between R and V vectors and their COEs
 #       COEsFunction(): This function converts R and V vectors into their Classical Orbital Elements
 #       COEs_to_RV(): This function converts a given set of Classical Orbital Elements into the respective R and V vectors
+
+#  Universal Variable Orbit Propagation
 #       StumC(): Stumpff function used for Universal Variable Calculations
 #       StumS(): Stumpff function used for Universal Variable Calculations
 #       Universal_Variable_Prop(): Universal Variable Function
+
+#  Orbit Determination Functions
+#       R_site_calc(): This function calculates the site vector in ECI as it uses Local Sidereal Time
+#       UniversalVariable_GaussExtended(): Variation of the Universal Variable method, just returns Lagrange coefficients to be used with Gauss method
 
 
 
@@ -17,10 +30,92 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import math
 
+# DEALING WITH TIME CALCULATIONS
+# Julian Date Function
+def JulianDateCalc(month, day, year, hour, minute, second):
+   # This function outputs the Julian Date from a given time
+   # Inputs:
+   #       month - Month (1-12)
+   #       day - Day
+   #       year - Year
+   #       hour - Hour (24 hour clock) and in UTC
+   #       minute - Minutes and in UTC
+   #       second - Seconds and in UTC
+   # Outputs:
+   #       JD - Julian Date
+   #       UT - Universal Time (time fractions of the day)
+   
+   M = month
+   D = day
+   Y = year
+   H = hour
+   Min = minute
+   S = second
+   
+   UT = H + Min/60+ S/3600
+   
+   J0 = 367*Y - math.floor((7*(Y+math.floor((M+9)/12)))/4) + math.floor((275*M)/9) + D + 1721013.5
+   JD = J0 + (UT/24)
+   
+   return [JD, UT]
 
+# Local Sidereal Time Function
+def Local_Sidereal_Time_Calc(month, day, year, hour, minute, second, lam, direction):
+    # This function calculates the Local Sidereal time based on the given date and time
+    # Inputs:
+    #       month - Month (1-12)
+    #       day - Day
+    #       year - Year
+    #       hour - Hour (24 hour clock) and in UTC
+    #       minute - Minutes and in UTC
+    #       second - Seconds and in UTC
+    #       lam - lambda value (represents east longitude)
+    #       direction - string value of either east or west for longitude direction
+    # Outputs:
+    #       LST - Local Sidereal Time in Degrees
+    
+    M = month
+    D = day
+    Y = year
+    H = hour
+    Min = minute
+    S = second
+    
+    J2000 = 2451545.0     # The Julian Date of Jan 1 2000 at noon
+    juliancentury = 36525 # Sets the value of a Julian Century
+    
+    UT = JulianDateCalc(month, day, year, hour, minute, second)[1]  # Get just the UT at the current time
+    # Calculating Julian Date at the beginning of the given day (not at current given time) so at 00:00:00
+    JD = 367*Y - math.floor((7*(Y+math.floor((M+9)/12)))/4) + math.floor((275*M)/9) + D + 1721013.5
+    
+    T0 = (JD-J2000)/juliancentury
+    thetaG0 = 100.4606184 + 36000.77004*T0 + .000387933*((T0)**2) - (2.583*(10**-8))*((T0)**3)
+    
+    while thetaG0 > 360 or thetaG0 < 0:
+      if thetaG0 > 360:
+         thetaG0 = thetaG0 - 360
+      else:
+         thetaG0 = thetaG0 + 360
+         
+    theta = thetaG0 + 360.98564724*(UT/24) # Greenwich Sidereal Time
+    
+    # Local Sidereal Time in degrees
+    if direction == 'east':
+      # Need to add lamda value
+      LST = theta + lam
+    else:
+      # Subtract lamda value
+      LST = theta + (360-lam)
+    
+    while LST >  360 or LST < 0:
+      if LST > 360:
+         LST = LST - 360
+      else:
+         LST = LST + 360
 
+    return LST
 
-
+#-----------------------------------------------------------------------------
 # 2 Body Motion Orbit Equation ODE
 def two_body_motion(state, t, muearth):
     
@@ -68,7 +163,7 @@ def ODE_two_body_motion(rvect, vvect, tf, timestep):
     return propstate
 
 #-----------------------------------------------------------------------------
-
+# CONVERTING BETWEEN R and V VECTORS and COEs
 # R and V Vectors to COEs
 def COEsFunction(rvect, vvect):
     # This function is used to convert the R and V vectors into the respective COEs
@@ -175,7 +270,7 @@ def COEs_to_RV(h, ecc, inc, RAAN, argumentofperigee, trueanomaly):
     return [r_eci, v_eci]
 
 #-----------------------------------------------------------------------------
-
+# UNIVERSAL VARIABLE PROPOGATION
 # Stumpff Functions
 def StumC(Z):
     if (Z > 0):
@@ -262,3 +357,94 @@ def Universal_Variable_Prop(muearth, rvect, vvect, initialdt):
     return[rvect_new, vvect_new]
 
 #-----------------------------------------------------------------------------
+# ORBIT DETERMINATION FUNCTIONS
+
+# R site vector calculation   
+def R_site_calc(lat, long, direction, alt, month, day, year, hour, minute, second):
+   # This function calculates the site vector in ECI as it uses local sidereal time
+   # Inputs:
+   #       lat - latitude [deg]
+   #       long - longitude [deg]
+   #       direction - string value of either east or west for longitude direction
+   #       alt - Altitude [m]
+   #       month - Month (1-12)
+   #       day - Day
+   #       year - Year
+   #       hour - Hour (24 hour clock) and in UTC
+   #       minute - Minutes and in UTC
+   #       second - Seconds and in UTC
+   # Outputs:
+   #       Rsite - R site vector in ECI frame [km]
+   
+   
+   H = alt/1000        # Convert altitude to km
+   phi = np.radians(lat)  # Latitude converted to radians
+   
+   lam = long
+   LST = Local_Sidereal_Time_Calc(month, day, year, hour, minute, second, lam, direction) # Local Sidereal Time calc
+   theta = np.radians(LST)  # Converts LST to radians
+   
+   Re = 6378     # radius of Earth [km]
+   f = 0.003353  # Oblateness factor
+   
+   # If use local sidereal time then Rsite is in ECI
+   Rsite = np.array((((Re/math.sqrt(1-(2*f-(f**2))*(math.sin(phi))**2))+H)*math.cos(phi))*np.array([math.cos(theta), math.sin(theta), 0])+
+      (((Re*(1-f)**2)/(math.sqrt(1-(2*f-(f**2))*(math.sin(phi))**2)))+H)*np.array([0, 0, math.sin(phi)]))
+   
+   return Rsite
+
+# Universal Variable Function to be used with the Gauss Extended Method of Orbit Determination
+def UniversalVariable_GaussExtended(muearth,rvect,vvect,initialdt):
+   # Universal Variable method to get new Lagrange coefficients for Gauss Extended method
+   # Inputs:
+   #       muearth - Standard Gravitational Parameter (km^3/s^2)
+   #       rvect - Position vector (km)
+   #       vvect - Velocity vector (km/s)
+   #       initialdt - Time step that will be used for the calculations, in units of seconds
+   # Outputs:
+   #       f - Lagrange coefficients
+   #       g - Lagrange coefficients
+   
+   
+   # Code for function based on code from Curtis
+   dt = initialdt   # in units of seconds
+    
+   R = np.linalg.norm(rvect)
+   V = np.linalg.norm(vvect)
+   Vr = np.dot(rvect,vvect)/R
+   alpha = (2/R) - ((V**2)/muearth)  # Reciprocal of semimajor axis (1/km) 
+    
+   # Error tolerance and limit on iterations
+   e_tol = 1.0e-8
+   n_max = 1000
+   
+   # Setup for loop 
+   n = 0       # Iteration counter
+   ratio = 1   # ratio that will represent the error
+   x = math.sqrt(muearth)*abs(alpha)*dt # Initial Guess
+   
+   # Loop
+   while abs(ratio) > e_tol and n <= n_max:
+      z = alpha * (x**2)
+        
+      # Stumpff Functions
+      C = StumC(z)
+      S = StumS(z)
+        
+      F = R*Vr/math.sqrt(muearth)*x**2*C + (1-alpha*R)*(x**3)*S + R*x - math.sqrt(muearth)*dt
+      dFdx = R*Vr/math.sqrt(muearth)*x*(1-alpha*(x**2)*S) + (1-alpha*R)*(x**2)*C + R
+      ratio = F/dFdx
+        
+      x = x - ratio  # Recalculate x
+      n += 1         # Increment n to keep track of number of iterations
+    
+   # Recalculate with finalized value
+   z = alpha * (x**2)
+   C = StumC(z)
+   S = StumS(z)
+    
+   # Lagrange Coefficients and solving for new r and v vectors
+   f = 1 - ((x**2)/R)*C
+   g = dt - (1/math.sqrt(muearth))*(x**3)*S
+   
+   return [f,g]
