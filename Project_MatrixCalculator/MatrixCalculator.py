@@ -26,7 +26,6 @@
 
 import Matrix       # importing the Matrix module that we have created
 
-
 # How a nested list works
 #x = [[1,2,3],[4,5,6]]
 #y = x[1]
